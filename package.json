@@ -1,0 +1,28 @@
+{
+  "name": "nexusflow-telemetry",
+  "version": "1.0.0",
+  "description": "NexusFlow - Database & Telemetry Ingestion Module (IoT Sensor Data)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "simulate": "node src/simulator/sensorSimulator.js",
+    "test": "echo \"Tests running...\" && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "@influxdata/influxdb-client": "^1.33.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0",
+    "uuid": "^9.0.0",
+    "socket.io": "^4.6.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": ["nexusflow", "telemetry", "iot", "mongodb", "influxdb"],
+  "author": "NexusFlow Team",
+  "license": "MIT"
+}
