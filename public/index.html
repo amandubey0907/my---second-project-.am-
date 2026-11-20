@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexusFlow — Telemetry Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+</head>
+<body>
+  <!-- ─── Header ─────────────────────────────────────────── -->
+  <header>
+    <div class="header-brand">
+      <div class="logo">⬡</div>
+      <div>
+        <h1>NexusFlow</h1>
+        <span class="subtitle">Database &amp; Telemetry Ingestion Module</span>
+      </div>
+    </div>
+    <div class="header-status">
+      <span class="status-pill" id="connectionStatus">● Connecting...</span>
+      <span class="timestamp" id="lastUpdated">—</span>
+    </div>
+  </header>
+
+  <!-- ─── KPI Cards ───────────────────────────────────────── -->
+  <section class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon">📥</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Total Ingested</div>
+        <div class="kpi-value" id="totalIngested">0</div>
+        <div class="kpi-sub">sensor readings</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">⚡</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Ingestion Rate</div>
+        <div class="kpi-value" id="ingestionRate">0</div>
+        <div class="kpi-sub">readings / sec</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🕒</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Uptime</div>
+        <div class="kpi-value" id="uptime">0s</div>
+        <div class="kpi-sub">module runtime</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🗄️</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Buffer Size</div>
+        <div class="kpi-value" id="bufferSize">0</div>
+        <div class="kpi-sub">in-memory records</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── DB Status ───────────────────────────────────────── -->
+  <section class="db-status-grid">
+    <div class="db-card mongodb">
+      <div class="db-header">
+        <span class="db-icon">🍃</span>
+        <span class="db-name">MongoDB</span>
+        <span class="db-badge" id="mongoBadge">—</span>
+      </div>
+      <div class="db-details" id="mongoDetails">Connecting...</div>
+    </div>
+    <div class="db-card influxdb">
+      <div class="db-header">
+        <span class="db-icon">📈</span>
+        <span class="db-name">InfluxDB</span>
+        <span class="db-badge" id="influxBadge">—</span>
+      </div>
+      <div class="db-details" id="influxDetails">Connecting...</div>
+    </div>
+  </section>
+
+  <!-- ─── Charts ──────────────────────────────────────────── -->
+  <section class="charts-grid">
+    <div class="chart-card wide">
+      <div class="chart-header">
+        <h3>🌡️ Temperature &amp; Humidity — Live Feed</h3>
+        <span class="chart-label" id="liveDevice">—</span>
+      </div>
+      <canvas id="tempHumidChart"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header"><h3>💨 CO₂ Level (ppm)</h3></div>
+      <canvas id="co2Chart"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header"><h3>🔵 Atmospheric Pressure (hPa)</h3></div>
+      <canvas id="pressureChart"></canvas>
+    </div>
+  </section>
+
+  <!-- ─── Sensor Gauges ────────────────────────────────────── -->
+  <section class="gauges-grid">
+    <div class="gauge-card">
+      <div class="gauge-label">Temperature</div>
+      <div class="gauge-value" id="g-temp">—</div>
+      <div class="gauge-unit">°C</div>
+      <div class="gauge-bar"><div class="gauge-fill temp-fill" id="gf-temp" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-label">Humidity</div>
+      <div class="gauge-value" id="g-hum">—</div>
+      <div class="gauge-unit">%</div>
+      <div class="gauge-bar"><div class="gauge-fill hum-fill" id="gf-hum" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-label">Pressure</div>
+      <div class="gauge-value" id="g-pres">—</div>
+      <div class="gauge-unit">hPa</div>
+      <div class="gauge-bar"><div class="gauge-fill pres-fill" id="gf-pres" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-label">CO₂</div>
+      <div class="gauge-value" id="g-co2">—</div>
+      <div class="gauge-unit">ppm</div>
+      <div class="gauge-bar"><div class="gauge-fill co2-fill" id="gf-co2" style="width:0%"></div></div>
+    </div>
+  </section>
+
+  <!-- ─── Live Event Log ───────────────────────────────────── -->
+  <section class="log-section">
+    <div class="log-header">
+      <h3>📋 Live Ingestion Log</h3>
+      <button onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-body" id="logBody"></div>
+  </section>
+
+  <!-- ─── Ingest Tool ──────────────────────────────────────── -->
+  <section class="ingest-section">
+    <h3>🔧 Manual Telemetry Inject</h3>
+    <div class="ingest-form">
+      <input type="text"   id="i-deviceId"  placeholder="Device ID (e.g. sensor-001)" value="sensor-001" />
+      <input type="text"   id="i-location"  placeholder="Location"                    value="Floor-1-Zone-A" />
+      <input type="number" id="i-temp"      placeholder="Temperature (°C)"            value="23.5" step="0.1" />
+      <input type="number" id="i-humidity"  placeholder="Humidity (%)"                value="65"   step="0.1" />
+      <input type="number" id="i-pressure"  placeholder="Pressure (hPa)"             value="1013" step="0.1" />
+      <input type="number" id="i-co2"       placeholder="CO₂ (ppm)"                  value="420"  step="1" />
+      <button onclick="injectReading()" class="btn-primary">Inject Reading</button>
+    </div>
+    <div id="injectResult"></div>
+  </section>
+
+  <footer>
+    <p>NexusFlow — Database &amp; Telemetry Ingestion Module · v1.0.0 · Built by Aman Dubey</p>
+  </footer>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>
